@@ -1,2 +1,2 @@
 # fastapi-ecs
-Simple FastAPI project with automatic deployment to AWS ECS. 
+Simple FastAPI project with automatic deployment to AWS ECS.

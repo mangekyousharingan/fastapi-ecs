@@ -1,37 +1,75 @@
-name: Deploy to ECS
+name: CI/CD Pipeline
 
 on:
+  pull_request:
+    branches:
+      - master
   push:
     branches:
       - master
 
 jobs:
-  deploy:
+  lint-and-test:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Check out code
         uses: actions/checkout@v2
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
           python-version: 3.11.4
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Install AWS CLI
         run: |
-          curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-          sudo installer -pkg AWSCLIV2.pkg -target /
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pre-commit pytest
+          pre-commit run --all-files
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-central-1
+      - name: Run Tests
+        run: pytest
 
-      - name: Trigger CodePipeline
+  build-and-push-docker:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push Docker image
         run: |
-          aws codepipeline start-pipeline-execution --name fastapi-ecs-pipeline
+          aws_account_id=$(aws sts get-caller-identity --query Account --output text)
+          region=us-east-1
+          repository_name=fastapi-app
+
+          docker build -t $repository_name .
+          docker tag $repository_name:latest $aws_account_id.dkr.ecr.$region.amazonaws.com/$repository_name:latest
+          docker push $aws_account_id.dkr.ecr.$region.amazonaws.com/$repository_name:latest
+
+  deploy-to-ecs:
+    runs-on: ubuntu-latest
+    needs: build-and-push-docker
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Deploy to ECS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          ecs_cluster_name=my-ecs-cluster
+          service_name=my-fastapi-service
+          task_definition=my-task-definition
+
+          aws ecs update-service --cluster $ecs_cluster_name --service $service_name --force-new-deployment
+
+# TODO: finish deploy part
