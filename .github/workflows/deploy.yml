@@ -47,7 +47,7 @@ jobs:
       - name: Build, tag, and push Docker image
         run: |
           aws_account_id=$(aws sts get-caller-identity --query Account --output text)
-          region=us-east-1
+          region=${{ secrets.AWS_DEFAULT_REGION }}
           repository_name=fastapi-app
 
           docker build -t $repository_name .
@@ -64,12 +64,10 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           ecs_cluster_name=my-ecs-cluster
           service_name=my-fastapi-service
           task_definition=my-task-definition
 
           aws ecs update-service --cluster $ecs_cluster_name --service $service_name --force-new-deployment
-
-# TODO: finish deploy part
