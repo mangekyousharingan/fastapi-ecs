@@ -29,8 +29,6 @@ jobs:
           pre-commit run --all-files
 
       - name: Run Tests
-        env:
-          PYTHONPATH: src
         run: pytest
 
   build-and-push-docker:
