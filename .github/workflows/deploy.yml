@@ -64,7 +64,7 @@ jobs:
 
       - name: Push Docker image to Amazon ECR
         run: |
-          docker push https://${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
 
   deploy-to-ecs:
     runs-on: ubuntu-latest
