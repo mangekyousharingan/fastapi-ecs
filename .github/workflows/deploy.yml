@@ -42,7 +42,9 @@ jobs:
 
       - name: Set up AWS Region
         run: |
-          echo "Setting AWS Region to ${{ secrets.AWS_DEFAULT_REGION }}"
+          echo "Setting AWS CLI configuration"
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws configure set region ${{ secrets.AWS_DEFAULT_REGION }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
