@@ -1,11 +1,17 @@
-FROM python:3.9-slim
+FROM python:3.11-slim
+
+# Install Poetry
+RUN pip install --no-cache-dir poetry
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Copy Poetry files
+COPY pyproject.toml poetry.lock /app/
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies using Poetry
+RUN poetry config virtualenvs.create false && poetry install --no-dev --no-interaction --no-ansi
 
-COPY . .
+# Copy application code
+COPY ./app /app
 
-CMD ["python", "-m", "src"]
+CMD ["python", "-m", "app"]

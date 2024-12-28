@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from src.__main__ import create_http_controller
+from app.__main__ import create_http_controller
 
 client = TestClient(create_http_controller())
 

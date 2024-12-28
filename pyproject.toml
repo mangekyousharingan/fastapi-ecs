@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "fastapi-ecs"
+version = "0.1.0"
+description = ""
+authors = ["Sebastian Wdowiarz <wdowiarzsebastian@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.6"
+uvicorn = "^0.34.0"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+pytest-cov = "^6.0.0"
+httpx = "^0.28.1"
+flake8 = "^7.1.1"
+mypy = "^1.14.0"
+black = "^24.10.0"
+pyupgrade = "^3.19.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

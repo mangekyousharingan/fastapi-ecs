@@ -1,83 +1,54 @@
-name: CI/CD Pipeline for FastAPI
+name: CI/CD Pipeline
 
 on:
-  pull_request:
-    branches:
-      - master
   push:
     branches:
-      - master
+      - main
+  pull_request:
 
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.11.4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pre-commit pytest
-          pre-commit run --all-files
+    - name: Install Poetry
+      run: pip install --no-cache-dir poetry
 
-      - name: Run Tests
-        run: pytest
+    - name: Install Dependencies
+      run: poetry install
 
-  build-and-push-docker:
-    runs-on: ubuntu-latest
+    - name: Run Lint and Tests
+      run: |
+        poetry run black .
+        poetry run flake8 .
+        poetry run mypy .
+        poetry run pyupgrade --py311-plus **/*.py
+        poetry run pytest
+
+  deploy:
     needs: lint-and-test
-    if: github.ref == 'refs/heads/master'
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Set up AWS Region
-        run: |
-          echo "Setting AWS CLI configuration"
-          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws configure set region ${{ secrets.AWS_DEFAULT_REGION }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-
-      - name: Log in to Amazon ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v1
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.ECR_REPOSITORY }} .
-          docker tag ${{ secrets.ECR_REPOSITORY }}:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
-
-      - name: Push Docker image to Amazon ECR
-        run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_DEFAULT_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}:latest
-
-  deploy-to-ecs:
+    if: github.ref == 'refs/heads/main' && success()
     runs-on: ubuntu-latest
-    needs: build-and-push-docker
-    if: github.ref == 'refs/heads/master'
 
     steps:
-      - name: Deploy to ECS
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-        run: |
-          aws ecs update-service --cluster ${{ secrets.ECS_CLUSTER }} --service ${{ secrets.ECS_SERVICE }} --force-new-deployment
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Deploy to ECS
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+      run: |
+        aws ecs update-service \
+          --cluster your-cluster-name \
+          --service your-service-name \
+          --force-new-deployment
