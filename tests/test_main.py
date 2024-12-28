@@ -6,7 +6,7 @@ from app.__main__ import create_http_controller
 client = TestClient(create_http_controller())
 
 
-def test_health_endpoint():
+def test_health_endpoint() -> None:
     response = client.get("/")
 
     assert response.status_code == 200
@@ -21,7 +21,7 @@ def test_health_endpoint():
         ("Bob", {"result": "Hello Bob!"}),
     ],
 )
-def test_greeting_endpoint(name, expected_response):
+def test_greeting_endpoint(name: str, expected_response: dict[str, str]) -> None:
     response = client.get(f"/greeting/{name}")
 
     assert response.status_code == 200

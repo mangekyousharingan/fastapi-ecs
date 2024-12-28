@@ -25,13 +25,8 @@ jobs:
     - name: Install Dependencies
       run: poetry install
 
-    - name: Run Lint and Tests
-      run: |
-        poetry run black .
-        poetry run flake8 .
-        poetry run mypy .
-        poetry run pyupgrade --py311-plus **/*.py
-        poetry run pytest
+    - name: Run Pre-Commit Hooks
+      run: poetry run pre-commit run --all-files
 
   deploy:
     needs: lint-and-test
