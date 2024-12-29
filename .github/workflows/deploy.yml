@@ -28,7 +28,7 @@ jobs:
     - name: Run Pre-Commit Hooks
       run: poetry run pre-commit run --all-files
 
-  deploy:
+  build-and-deploy:
     needs: lint-and-test
     if: github.ref == 'refs/heads/main' && success()
     runs-on: ubuntu-latest
@@ -37,13 +37,42 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    - name: Deploy to ECS
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, Tag, and Push Docker Image
+      run: |
+        # Set variables
+        REPO_NAME="fastapi-ecs-repo"
+        IMAGE_TAG=${{ github.sha }}
+        AWS_REGION=${{ secrets.AWS_REGION }}
+        ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+
+        # Build and tag the Docker image
+        docker build -t $REPO_NAME:$IMAGE_TAG .
+        docker tag $REPO_NAME:$IMAGE_TAG $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG
+
+        # Push the image to Amazon ECR
+        docker push $ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG
+
+    - name: Update ECS Service
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: ${{ secrets.AWS_REGION }}
       run: |
+        # Set variables
+        CLUSTER_NAME=fastapi-ecs-cluster
+        SERVICE_NAME=fastapi-ecs-service
+        IMAGE_TAG=${{ github.sha }}
+        AWS_REGION=${{ secrets.AWS_REGION }}
+        ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+        IMAGE_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-ecr-repo-name:$IMAGE_TAG
+
+        # Update ECS service with the new image
         aws ecs update-service \
-          --cluster your-cluster-name \
-          --service your-service-name \
-          --force-new-deployment
+          --cluster $CLUSTER_NAME \
+          --service $SERVICE_NAME \
+          --force-new-deployment \
+          --region $AWS_REGION
