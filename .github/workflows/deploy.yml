@@ -30,7 +30,7 @@ jobs:
 
   build-and-deploy:
     needs: lint-and-test
-    if: github.ref == 'refs/heads/main' && success()
+    if: github.ref == 'refs/heads/master' && success()
     runs-on: ubuntu-latest
 
     steps:
