@@ -30,7 +30,7 @@ jobs:
 
   build-and-deploy:
     needs: lint-and-test
-    if: github.ref == 'refs/heads/master' && success()
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' || github.event_name == 'pull_request' && github.base_ref == 'master' && success()
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +40,8 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
+      with:
+        region: ${{ secrets.AWS_REGION }}
 
     - name: Build, Tag, and Push Docker Image
       run: |
