@@ -40,12 +40,10 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-      with:
-        region: eu-central-1
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: eu-central-1
+        AWS_REGION: ${{ secrets.AWS_REGION }}
 
     - name: Build, Tag, and Push Docker Image
       run: |
@@ -74,7 +72,7 @@ jobs:
         IMAGE_TAG=${{ github.sha }}
         AWS_REGION=${{ secrets.AWS_REGION }}
         ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-        IMAGE_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/your-ecr-repo-name:$IMAGE_TAG
+        IMAGE_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME:$IMAGE_TAG
 
         # Update ECS service with the new image
         aws ecs update-service \
